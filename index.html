@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fortnite Duo Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --card: #141a2e;
+      --accent: #7c7cff;
+      --good: #2ecc71;
+      --meh: #f1c40f;
+      --bad: #e74c3c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #141a2e, var(--bg));
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 32px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      letter-spacing: 2px;
+    }
+
+    header p {
+      opacity: 0.8;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(124,124,255,0.15), transparent 40%), var(--card);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.3rem;
+    }
+
+    .login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+    }
+
+    .login button {
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      border: none;
+      color: white;
+      font-size: 1rem;
+      padding: 14px 24px;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(124,124,255,0.4);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.05);
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat span {
+      display: block;
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    .score {
+      font-size: 3rem;
+      text-align: center;
+      margin: 16px 0;
+    }
+
+    .verdict {
+      text-align: center;
+      font-size: 1.1rem;
+    }
+
+    .good { color: var(--good); }
+    .meh { color: var(--meh); }
+    .bad { color: var(--bad); }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      opacity: 0.6;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Fortnite Duo Analyzer</h1>
+  <p>Powered by FortniteTracker • Are you actually cracked together?</p>
+</header>
+
+<div class="container">
+
+  <div class="card login" id="loginCard">
+    <button onclick="loginWithTracker()">Sign in with FortniteTracker</button>
+  </div>
+
+  <div class="card" id="playerCard" style="display:none">
+    <h2>Your Stats</h2>
+    <div class="stats" id="playerStats"></div>
+  </div>
+
+  <div class="card" id="duoCard" style="display:none">
+    <h2>Duo Overview</h2>
+    <div class="score" id="duoScore">0</div>
+    <div class="verdict" id="duoVerdict"></div>
+  </div>
+
+</div>
+
+<footer>
+  Not affiliated with Epic Games. Fortnite is a trademark of Epic Games.
+</footer>
+
+<script>
+  // ================================
+  // IMPORTANT
+  // FortniteTracker API calls MUST go through your own backend or serverless proxy
+  // so your API key is not exposed. This frontend assumes a proxy endpoint:
+  //   /api/fortnite?epicName=NAME&platform=pc
+  // ================================
+
+  function loginWithTracker() {
+    // Tracker Network OAuth (example)
+    // You must register your app with Tracker Network
+    const clientId = 'YOUR_TRACKER_CLIENT_ID';
+    const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+
+    const authUrl = `https://auth.tracker.gg/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}`;
+    window.location.href = authUrl;
+  }
+
+  // Handle OAuth redirect
+  if (window.location.hash.includes('access_token')) {
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = params.get('access_token');
+
+    // In a real app, send token to backend and fetch linked Epic account
+    // For demo, we fake player names
+    initApp({
+      player: 'PlayerOne',
+      duo: 'DuoPartner'
+    });
+  }
+
+  async function initApp(users) {
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('playerCard').style.display = 'block';
+    document.getElementById('duoCard').style.display = 'block';
+
+    const playerStats = await getStats(users.player);
+    const duoStats = await getStats(users.duo);
+
+    renderPlayerStats(playerStats);
+    analyzeDuo(playerStats, duoStats);
+  }
+
+  async function getStats(epicName) {
+    // Example call to your backend proxy
+    // const res = await fetch(`/api/fortnite?epicName=${epicName}&platform=pc`);
+    // return await res.json();
+
+    // ---- MOCK DATA FOR FRONTEND DEMO ----
+    return {
+      name: epicName,
+      kd: +(Math.random() * 3 + 1).toFixed(2),
+      winRate: +(Math.random() * 20 + 5).toFixed(1),
+      matches: Math.floor(Math.random() * 2000),
+      damage: Math.floor(Math.random() * 1500 + 500)
+    };
+  }
+
+  function renderPlayerStats(stats) {
+    const el = document.getElementById('playerStats');
+    el.innerHTML = '';
+
+    addStat(el, 'K/D', stats.kd);
+    addStat(el, 'Win %', stats.winRate);
+    addStat(el, 'Matches', stats.matches);
+    addStat(el, 'Avg Damage', stats.damage);
+  }
+
+  function addStat(parent, label, value) {
+    const div = document.createElement('div');
+    div.className = 'stat';
+    div.innerHTML = `<strong>${value}</strong><span>${label}</span>`;
+    parent.appendChild(div);
+  }
+
+  function analyzeDuo(a, b) {
+    // Simple synergy formula
+    const kdScore = 1 - Math.abs(a.kd - b.kd) / Math.max(a.kd, b.kd);
+    const winScore = (a.winRate + b.winRate) / 40;
+    const consistency = 1 - Math.abs(a.matches - b.matches) / Math.max(a.matches, b.matches);
+
+    let score = Math.round((kdScore * 0.4 + winScore * 0.4 + consistency * 0.2) * 100);
+    score = Math.max(0, Math.min(100, score));
+
+    const scoreEl = document.getElementById('duoScore');
+    const verdictEl = document.getElementById('duoVerdict');
+
+    scoreEl.textContent = score;
+
+    if (score >= 75) {
+      verdictEl.textContent = 'Elite Duo – drop hot and dominate.';
+      verdictEl.className = 'verdict good';
+    } else if (score >= 45) {
+      verdictEl.textContent = 'Decent Duo – solid, but room to improve.';
+      verdictEl.className = 'verdict meh';
+    } else {
+      verdictEl.textContent = 'Struggling Duo – consider switching roles.';
+      verdictEl.className = 'verdict bad';
+    }
+  }
+</script>
+
+</body>
+</html>
